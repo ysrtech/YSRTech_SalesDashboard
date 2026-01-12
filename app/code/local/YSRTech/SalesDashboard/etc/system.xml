@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<config>
+    <sections>
+        <ysrtech_salesdashboard translate="label" module="ysrtech_salesdashboard">
+            <label>Sales Dashboard</label>
+            <tab>sales</tab>
+            <sort_order>1000</sort_order>
+            <show_in_default>1</show_in_default>
+            <show_in_website>1</show_in_website>
+            <show_in_store>1</show_in_store>
+
+            <groups>
+                <general translate="label" module="ysrtech_salesdashboard">
+                    <label>General Settings</label>
+                    <sort_order>1</sort_order>
+                    <show_in_default>1</show_in_default>
+                    <show_in_website>1</show_in_website>
+                    <show_in_store>1</show_in_store>
+
+                    <fields>
+                        <order_statuses translate="label,comment" module="ysrtech_salesdashboard">
+                            <label>Order Statuses to Include</label>
+                            <comment>Select which order statuses should be included in the sales dashboard reports</comment>
+                            <frontend_type>multiselect</frontend_type>
+                            <source_model>adminhtml/system_config_source_order_status</source_model>
+                            <sort_order>10</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <can_be_empty>0</can_be_empty>
+                        </order_statuses>
+
+                        <product_grouping_attribute translate="label,comment" module="ysrtech_salesdashboard">
+                            <label>Product Grouping Attribute</label>
+                            <comment>Select the product attribute to group products sold by in the report</comment>
+                            <frontend_type>select</frontend_type>
+                            <source_model>ysrtech_salesdashboard/system_config_source_product_attributes</source_model>
+                            <sort_order>20</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </product_grouping_attribute>
+                    </fields>
+                </general>
+            </groups>
+        </ysrtech_salesdashboard>
+    </sections>
+</config>

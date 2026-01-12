@@ -1,0 +1,99 @@
+<?xml version="1.0"?>
+<config>
+    <modules>
+        <YSRTech_SalesDashboard>
+            <version>1.0.0</version>
+        </YSRTech_SalesDashboard>
+    </modules>
+    
+    <admin>
+        <routers>
+            <adminhtml>
+                <args>
+                    <modules>
+                        <YSRTech_SalesDashboard before="Mage_Adminhtml">YSRTech_SalesDashboard_Adminhtml</YSRTech_SalesDashboard>
+                    </modules>
+                </args>
+            </adminhtml>
+        </routers>
+    </admin>
+    
+    <adminhtml>
+        <layout>
+            <updates>
+                <ysrtech_salesdashboard>
+                    <file>ysrtech/salesdashboard.xml</file>
+                </ysrtech_salesdashboard>
+            </updates>
+        </layout>
+        
+        <menu>
+            <sales>
+                <children>
+                    <salesdashboard translate="title" module="ysrtech_salesdashboard">
+                        <title>Sales Dashboard</title>
+                        <action>adminhtml/salesdashboard/index</action>
+                        <sort_order>100</sort_order>
+                    </salesdashboard>
+                </children>
+            </sales>
+        </menu>
+        
+        <acl>
+            <resources>
+                <admin>
+                    <children>
+                        <system>
+                            <children>
+                                <config>
+                                    <children>
+                                        <ysrtech_salesdashboard translate="title" module="ysrtech_salesdashboard">
+                                            <title>Sales Dashboard</title>
+                                        </ysrtech_salesdashboard>
+                                    </children>
+                                </config>
+                            </children>
+                        </system>
+                        <sales>
+                            <children>
+                                <salesdashboard translate="title" module="ysrtech_salesdashboard">
+                                    <title>Sales Dashboard</title>
+                                    <sort_order>100</sort_order>
+                                </salesdashboard>
+                            </children>
+                        </sales>
+                    </children>
+                </admin>
+            </resources>
+        </acl>
+    </adminhtml>
+    
+    <global>
+        <blocks>
+            <ysrtech_salesdashboard>
+                <class>YSRTech_SalesDashboard_Block</class>
+            </ysrtech_salesdashboard>
+        </blocks>
+        
+        <helpers>
+            <ysrtech_salesdashboard>
+                <class>YSRTech_SalesDashboard_Helper</class>
+            </ysrtech_salesdashboard>
+        </helpers>
+        
+        <models>
+            <ysrtech_salesdashboard>
+                <class>YSRTech_SalesDashboard_Model</class>
+            </ysrtech_salesdashboard>
+        </models>
+    </global>
+    
+    <default>
+        <ysrtech_salesdashboard>
+            <general>
+                <order_statuses>complete</order_statuses>
+                <product_grouping_attribute>category</product_grouping_attribute>
+            </general>
+        </ysrtech_salesdashboard>
+    </default>
+</config>
