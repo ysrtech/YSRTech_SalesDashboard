@@ -40,8 +40,57 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </product_grouping_attribute>
+                        <wholesale_groups translate="label,comment" module="ysrtech_salesdashboard">
+                            <label>Wholesale Customer Groups</label>
+                            <comment>Orders from these customer groups count as Wholesale in the customer type filter; all others count as Retail.</comment>
+                            <frontend_type>multiselect</frontend_type>
+                            <source_model>adminhtml/system_config_source_customer_group</source_model>
+                            <sort_order>30</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>0</show_in_website>
+                            <show_in_store>0</show_in_store>
+                        </wholesale_groups>
+                        <retail_groups translate="label,comment" module="ysrtech_salesdashboard">
+                            <label>Retail Customer Groups</label>
+                            <comment>Alternative to the setting above, for stores with many wholesale groups: when groups are selected here, every OTHER group except NOT LOGGED IN (guests) counts as Wholesale and Wholesale Customer Groups is ignored.</comment>
+                            <frontend_type>multiselect</frontend_type>
+                            <source_model>adminhtml/system_config_source_customer_group_multiselect</source_model>
+                            <sort_order>35</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>0</show_in_website>
+                            <show_in_store>0</show_in_store>
+                            <can_be_empty>1</can_be_empty>
+                        </retail_groups>
+                        <marketplace_label translate="label,comment" module="ysrtech_salesdashboard">
+                            <label>Marketplace Channel Label</label>
+                            <comment>Name of the channel for orders imported from a marketplace or another store (orders with an external order id), e.g. Shopify or Faire.</comment>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>40</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>0</show_in_website>
+                            <show_in_store>0</show_in_store>
+                        </marketplace_label>
                     </fields>
                 </general>
+                <reconciliation translate="label" module="ysrtech_salesdashboard">
+                    <label>Card Reconciliation</label>
+                    <sort_order>2</sort_order>
+                    <show_in_default>1</show_in_default>
+                    <show_in_website>0</show_in_website>
+                    <show_in_store>0</show_in_store>
+                    <fields>
+                        <card_methods translate="label,comment" module="ysrtech_salesdashboard">
+                            <label>Card Payment Methods</label>
+                            <comment>Payment methods that charge the card through the gateway that deposits to the bank (Sola). Captures and refunds on orders paid this way are listed in the Card Reconciliation report.</comment>
+                            <frontend_type>multiselect</frontend_type>
+                            <source_model>adminhtml/system_config_source_payment_allmethods</source_model>
+                            <sort_order>10</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>0</show_in_website>
+                            <show_in_store>0</show_in_store>
+                        </card_methods>
+                    </fields>
+                </reconciliation>
             </groups>
         </ysrtech_salesdashboard>
     </sections>

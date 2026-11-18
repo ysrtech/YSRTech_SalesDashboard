@@ -1,44 +1,36 @@
 # YSRTech Sales Dashboard
 
-A custom sales reporting module for OpenMage/Magento 1 that provides comprehensive sales analytics in one convenient dashboard.
+One-page sales dashboard for OpenMage (Sales → Sales Dashboard).
 
-## What It Does
+- **Sales**: orders placed in the period (statuses from the config): gross, discounts, shipping,
+  tax, other adjustments, store credit, items shipped.
+- **Returns & credits**: credit memos created in the period.
+- **By channel** (online checkout, manual/admin, marketplace import = orders with an external order
+  id such as Shopify or Faire) and **by customer group / type** (wholesale vs retail).
+- **By payment method**, **tax by rate**, **products sold by attribute**.
+- **Card reconciliation**: every capture and refund that went through the card gateway, per store
+  day, to match the deposits; CSV export.
 
-Displays real-time sales data including:
-- Total sales, shipping, taxes, and refunds
-- Tax breakdown by rate with automatic federal tax subtotal (excludes QST/TVQ taxes)
-- Product sales grouped by any attribute (category, brand, etc.)
-- Quick date range selection (current/last month/year, previous 2-3 years)
+Filters: dates (store time zone), website, customer type, channel. Websites with different base
+currencies are never added up: the website filter is one website or all websites of one currency.
 
-## Installation
+## Install
 
-1. Copy the contents of the `app` directory to your OpenMage/Magento root directory
-2. Clear cache: `System → Cache Management` or delete `var/cache`
-3. Log out and log back into the admin panel
+```bash
+composer require ysrtech/sales-dashboard
+```
 
-## How to Access
-
-Navigate to **Sales → Sales Dashboard** in your admin panel.
+(or copy `app/` into the OpenMage root), then clear the cache.
 
 ## Configuration
 
-Go to **System → Configuration → Sales → Sales Dashboard** to set:
-- **Order Statuses to Include**: Choose which order statuses count towards reports (default: Complete)
-- **Product Grouping Attribute**: Select how to group products in the report (default: Category)
+System → Configuration → Sales → Sales Dashboard:
 
-## Key Benefits
+- **Order Statuses to Include** (default: complete)
+- **Product Grouping Attribute** (default: category)
+- **Wholesale Customer Groups**, or **Retail Customer Groups** for stores with many wholesale
+  groups (then every other group except guests is wholesale)
+- **Marketplace Channel Label** (e.g. Shopify, Faire)
+- **Card Payment Methods** for the reconciliation
 
-- Fast performance even with large date ranges using optimized SQL queries
-- Automatic federal vs provincial tax separation for Canadian reporting
-- Flexible date range selection with quick presets
-- Real-time data refresh without page reload
-
-## Requirements
-
-- OpenMage LTS 19.x or 20.x
-- Magento 1.7.x - 1.9.x
-- PHP 7.0+
-
-## License
-
-MIT License - see [LICENSE](LICENSE) file for details
+Requires OpenMage 20 / PHP 8.

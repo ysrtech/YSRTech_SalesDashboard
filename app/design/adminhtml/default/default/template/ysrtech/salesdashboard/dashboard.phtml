@@ -1,422 +1,364 @@
 <?php
 /**
- * YSRTech SalesDashboard Template
+ * YSRTech Sales Dashboard
  *
  * @var $this YSRTech_SalesDashboard_Block_Adminhtml_Dashboard
  */
-$salesData = $this->getSalesData();
+$report   = $this->getReport();
+$f        = $this->getFilters();
+$sales    = $report->getSalesSummary();
+$refunds  = $report->getRefundSummary();
+$methods  = $report->getSalesByPaymentMethod();
+$splits   = $report->getSplits();
+$taxes    = $report->getTaxByRate();
+$grouping = $this->getGroupingAttribute();
+$products = $report->getProductsByAttribute($grouping);
+$card     = $report->getCardReconciliation();
+$labels   = $this->kindLabels();
+$m = function ($v) { return $this->money($v); };
+$neg = function ($v) { return $v != 0 ? '&minus;' . $this->money(abs($v)) : $this->money(0); };
 ?>
+<style type="text/css">
+    .ysd-grid { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 16px; }
+    .ysd-grid > .entry-edit { flex: 1 1 420px; min-width: 0; margin-bottom: 0; }
+    .ysd-filters td.value { padding-right: 16px; }
+    .ysd-table td.a-right, .ysd-table th.a-right { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .ysd-table tr.ysd-sub td { padding-left: 22px; color: #555; }
+    .ysd-table tr.ysd-total td { border-top: 2px solid #333; font-weight: bold; }
+    .ysd-table tr.ysd-sep td { border-top: 1px solid #ccc; }
+    .ysd-neg { color: #b42318; }
+    .ysd-pos { color: #1a6b2c; }
+    .ysd-muted { color: #777; font-weight: normal; }
+    .ysd-note { color: #555; margin: 6px 0 10px; }
+    .ysd-active { background: #eef4fb; }
+    .ysd-kpis { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 16px; }
+    .ysd-kpi { flex: 1 1 170px; background: #fff; border: 1px solid #d6d6d6; border-radius: 4px; padding: 10px 14px; }
+    .ysd-kpi .l { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #666; }
+    .ysd-kpi .v { font-size: 20px; font-weight: bold; margin-top: 4px; font-variant-numeric: tabular-nums; }
+    .ysd-kpi .s { font-size: 11px; color: #777; margin-top: 2px; }
+    details.ysd-details summary { cursor: pointer; padding: 6px 0; font-weight: bold; }
+</style>
 
 <div class="content-header">
     <h3 class="icon-head head-sales-report"><?php echo $this->__('Sales Dashboard') ?></h3>
+    <p class="form-buttons"><button type="button" class="scalable" onclick="setLocation('<?php echo $this->getConfigUrl() ?>')"><span><span><?php echo $this->__('Settings') ?></span></span></button></p>
 </div>
 
+<form id="ysd-filters" method="get" action="<?php echo $this->getFormUrl() ?>">
 <div class="entry-edit">
-    <div class="entry-edit-head">
-        <h4 class="icon-head head-report"><?php echo $this->__('Date Range') ?></h4>
-    </div>
-    
-    <div class="fieldset" style="padding: 15px;">
-        <table cellspacing="0" class="form-list" style="width: auto;">
-            <tbody>
-                <tr>
-                    <td class="label" style="width: 80px;">
-                        <label for="period_select"><?php echo $this->__('Quick Select') ?></label>
-                    </td>
-                    <td class="value" style="padding-right: 20px;">
-                        <select id="period_select" name="period" class="select" style="width: 200px;" onchange="applyPeriod()">
-                            <option value=""><?php echo $this->__('-- Select Period --') ?></option>
-                            <option value="current_month"><?php echo $this->__('Current Month') ?></option>
-                            <option value="last_month"><?php echo $this->__('Last Month') ?></option>
-                            <option value="current_year"><?php echo $this->__('Current Year') ?></option>
-                            <option value="last_year"><?php echo $this->__('Last Year') ?></option>
-                            <option value="two_years"><?php echo $this->__('Previous 2 Years') ?></option>
-                            <option value="three_years"><?php echo $this->__('Previous 3 Years') ?></option>
-                        </select>
-                    </td>
-                    <td class="label" style="width: 50px;">
-                        <label for="date_from"><?php echo $this->__('From') ?></label>
-                    </td>
-                    <td class="value" style="padding-right: 15px;">
-                        <div style="position: relative; display: inline-block;">
-                            <input type="text" name="from" id="date_from" value="<?php echo $this->escapeHtml($this->getFromDate()) ?>" class="input-text" style="width: 120px;" readonly />
-                            <img src="<?php echo $this->getSkinUrl('images/grid-cal.gif') ?>" alt="<?php echo $this->__('Select Date') ?>" class="v-middle" id="date_from_trig" style="cursor: pointer; margin-left: 3px;" />
-                        </div>
-                    </td>
-                    <td class="label" style="width: 40px;">
-                        <label for="date_to"><?php echo $this->__('To') ?></label>
-                    </td>
-                    <td class="value" style="padding-right: 15px;">
-                        <div style="position: relative; display: inline-block;">
-                            <input type="text" name="to" id="date_to" value="<?php echo $this->escapeHtml($this->getToDate()) ?>" class="input-text" style="width: 120px;" readonly />
-                            <img src="<?php echo $this->getSkinUrl('images/grid-cal.gif') ?>" alt="<?php echo $this->__('Select Date') ?>" class="v-middle" id="date_to_trig" style="cursor: pointer; margin-left: 3px;" />
-                        </div>
-                    </td>
-                    <td class="label" style="width: 80px;">
-                        <label for="grouping_attribute_select"><?php echo $this->__('Group Products By') ?></label>
-                    </td>
-                    <td class="value" style="padding-right: 20px;">
-                        <select id="grouping_attribute_select" name="grouping_attribute" class="select" style="width: 180px;">
-                            <option value=""><?php echo $this->__('-- Config Default --') ?></option>
-                            <?php foreach ($this->getAvailableGroupingAttributes() as $attr): ?>
-                                <option value="<?php echo $this->escapeHtml($attr['value']) ?>"><?php echo $this->escapeHtml($attr['label']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </td>
-                    <td class="scope-label">
-                        <button type="button" class="scalable" onclick="refreshDashboard()" style="margin-left: 10px;">
-                            <span><span><?php echo $this->__('Refresh') ?></span></span>
-                        </button>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<div style="display: table; width: 100%; margin-bottom: 20px;">
-    <div style="display: table-row;">
-        <div style="display: table-cell; width: 50%; padding-right: 10px; vertical-align: top;">
-            <div class="entry-edit">
-                <div class="entry-edit-head">
-                    <h4 class="icon-head head-money"><?php echo $this->__('Sales Totals') ?></h4>
-                </div>
-                
-                <div class="fieldset" id="sales-totals-container">
-                    <div class="grid">
-                        <table cellspacing="0" class="data">
-                            <thead>
-                                <tr class="headings">
-                                    <th><?php echo $this->__('Metric') ?></th>
-                                    <th class="a-right"><?php echo $this->__('Amount') ?></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><?php echo $this->__('Number of Orders') ?></td>
-                                    <td class="a-right" id="order-count">
-                                        <?php echo $salesData['order_count'] ?>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><?php echo $this->__('Total Items Shipped') ?></td>
-                                    <td class="a-right" id="total-items-shipped">
-                                        <?php echo $salesData['total_items_shipped'] ?>
-                                    </td>
-                                </tr>
-                                <tr style="border-top: 1px solid #ccc;">
-                                    <td><?php echo $this->__('Subtotal (Excl. Tax & Shipping)') ?></td>
-                                    <td class="a-right" id="total-sales-without-shipping">
-                                        <?php echo $salesData['total_sales_without_shipping'] ?>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><?php echo $this->__('Shipping') ?></td>
-                                    <td class="a-right" id="total-shipping">
-                                        <?php echo $salesData['total_shipping'] ?>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><?php echo $this->__('Tax') ?></td>
-                                    <td class="a-right" id="total-tax-line">
-                                        <?php echo $salesData['total_tax_display'] ?>
-                                    </td>
-                                </tr>
-                                <tr style="border-top: 1px solid #ccc;">
-                                    <td><?php echo $this->__('Total Refunds') ?></td>
-                                    <td class="a-right" id="total-refunded">
-                                        <strong style="color: #cc0000;">-<?php echo $salesData['total_refunded'] ?></strong>
-                                    </td>
-                                </tr>
-                                <tr style="border-top: 2px solid #000;">
-                                    <td><strong><?php echo $this->__('Grand Total') ?></strong></td>
-                                    <td class="a-right" id="total-sales-with-shipping">
-                                        <strong style="font-size: 1.2em; color: #006400;"><?php echo $salesData['total_sales_with_shipping'] ?></strong>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div style="display: table-cell; width: 50%; padding-left: 10px; vertical-align: top;">
-            <div class="entry-edit">
-                <div class="entry-edit-head">
-                    <h4 class="icon-head head-money"><?php echo $this->__('Tax Breakdown by Rate') ?></h4>
-                </div>
-                
-                <div class="fieldset" id="tax-breakdown-container">
-                    <div class="grid">
-                        <table cellspacing="0" class="data">
-                            <thead>
-                                <tr class="headings">
-                                    <th><?php echo $this->__('Tax Rate') ?></th>
-                                    <th class="a-right"><?php echo $this->__('Amount') ?></th>
-                                </tr>
-                            </thead>
-                            <tbody id="tax-breakdown-body">
-                                <?php if (!empty($salesData['taxes_by_zone'])): ?>
-                                    <?php foreach ($salesData['taxes_by_zone'] as $tax): ?>
-                                        <tr>
-                                            <td><?php echo $this->escapeHtml($tax['identifier']) ?></td>
-                                            <td class="a-right"><?php echo $tax['amount'] ?></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                    <?php if ($salesData['federal_tax_raw'] > 0): ?>
-                                    <tr style="border-top: 1px solid #ccc;">
-                                        <td><strong><?php echo $this->__('Federal Tax Subtotal') ?></strong></td>
-                                        <td class="a-right" id="federal-tax">
-                                            <strong><?php echo $salesData['federal_tax'] ?></strong>
-                                        </td>
-                                    </tr>
-                                    <?php endif; ?>
-                                    <tr style="border-top: 2px solid #ccc;">
-                                        <td><strong><?php echo $this->__('Total Tax') ?></strong></td>
-                                        <td class="a-right" id="total-tax">
-                                            <strong style="font-size: 1.1em;"><?php echo $salesData['total_tax'] ?></strong>
-                                        </td>
-                                    </tr>
-                                <?php else: ?>
-                                    <tr>
-                                        <td colspan="2" class="a-center"><?php echo $this->__('No tax data available for this period.') ?></td>
-                                    </tr>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<?php if (!empty($salesData['grouping_attribute'])): ?>
-<div class="entry-edit">
-    <div class="entry-edit-head">
-        <h4 class="icon-head head-money"><?php echo $this->__('Products Sold') ?></h4>
-    </div>
-    
-    <div class="fieldset" id="products-container">
-        <div class="grid">
-            <table cellspacing="0" class="data">
-                <thead>
-                    <tr class="headings">
-                        <th><?php echo $this->__(ucfirst(str_replace('_', ' ', $salesData['grouping_attribute']))) ?></th>
-                        <th class="a-right"><?php echo $this->__('Quantity Sold') ?></th>
-                        <th class="a-right"><?php echo $this->__('Amount') ?></th>
-                    </tr>
-                </thead>
-                <tbody id="products-by-attribute-body">
-                    <?php if (!empty($salesData['products_by_attribute'])): ?>
-                        <?php foreach ($salesData['products_by_attribute'] as $product): ?>
-                            <tr>
-                                <td><?php echo $this->escapeHtml($product['attribute']) ?></td>
-                                <td class="a-right"><?php echo $product['qty'] ?></td>
-                                <td class="a-right"><?php echo $product['amount'] ?></td>
-                            </tr>
+    <div class="entry-edit-head"><h4 class="icon-head head-report"><?php echo $this->__('Filters') ?></h4></div>
+    <div class="fieldset ysd-filters" style="padding: 12px 15px;">
+        <table cellspacing="0" class="form-list" style="width:auto">
+            <tr>
+                <td class="label"><label for="period_select"><?php echo $this->__('Quick Select') ?></label></td>
+                <td class="value">
+                    <select id="period_select" class="select" style="width:170px" onchange="ysdApplyPeriod()">
+                        <option value=""><?php echo $this->__('-- Select Period --') ?></option>
+                        <option value="today"><?php echo $this->__('Today') ?></option>
+                        <option value="yesterday"><?php echo $this->__('Yesterday') ?></option>
+                        <option value="current_month"><?php echo $this->__('Current Month') ?></option>
+                        <option value="last_month"><?php echo $this->__('Last Month') ?></option>
+                        <option value="current_year"><?php echo $this->__('Current Year') ?></option>
+                        <option value="last_year"><?php echo $this->__('Last Year') ?></option>
+                    </select>
+                </td>
+                <td class="label"><label for="date_from"><?php echo $this->__('From') ?></label></td>
+                <td class="value">
+                    <input type="text" name="from" id="date_from" value="<?php echo $this->escapeHtml($f['from']) ?>" class="input-text" style="width:100px" />
+                    <img src="<?php echo $this->getSkinUrl('images/grid-cal.gif') ?>" alt="" class="v-middle" id="date_from_trig" style="cursor:pointer" />
+                </td>
+                <td class="label"><label for="date_to"><?php echo $this->__('To') ?></label></td>
+                <td class="value">
+                    <input type="text" name="to" id="date_to" value="<?php echo $this->escapeHtml($f['to']) ?>" class="input-text" style="width:100px" />
+                    <img src="<?php echo $this->getSkinUrl('images/grid-cal.gif') ?>" alt="" class="v-middle" id="date_to_trig" style="cursor:pointer" />
+                </td>
+            </tr>
+            <tr>
+                <td class="label"><label for="group"><?php echo $this->__('Customer Type') ?></label></td>
+                <td class="value">
+                    <select name="group" id="group" class="select" style="width:170px">
+                        <?php foreach ($this->getGroupOptions() as $value => $label): ?>
+                            <option value="<?php echo $this->escapeHtml($value) ?>"<?php if ((string) $value === (string) $f['group']): ?> selected="selected"<?php endif; ?>><?php echo $this->escapeHtml($label) ?></option>
                         <?php endforeach; ?>
+                    </select>
+                </td>
+                <td class="label"><label for="channel"><?php echo $this->__('Channel') ?></label></td>
+                <td class="value">
+                    <select name="channel" id="channel" class="select" style="width:200px">
+                        <?php foreach ($this->getChannelOptions() as $value => $label): ?>
+                            <option value="<?php echo $this->escapeHtml($value) ?>"<?php if ($value === $f['channel']): ?> selected="selected"<?php endif; ?>><?php echo $this->escapeHtml($label) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </td>
+                <td class="label"><label for="grouping_attribute"><?php echo $this->__('Group Products By') ?></label></td>
+                <td class="value">
+                    <select name="grouping_attribute" id="grouping_attribute" class="select" style="width:150px">
+                        <option value=""><?php echo $this->__('-- None --') ?></option>
+                        <?php foreach ($this->getAvailableGroupingAttributes() as $attr): ?>
+                            <option value="<?php echo $this->escapeHtml($attr['value']) ?>"<?php if ($attr['value'] === $grouping): ?> selected="selected"<?php endif; ?>><?php echo $this->escapeHtml($attr['label']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </td>
+            </tr>
+            <?php $websiteOptions = $report->getWebsiteOptions(); ?>
+            <?php if (count($websiteOptions) > 2): ?>
+            <tr>
+                <td class="label"><label for="website"><?php echo $this->__('Website') ?></label></td>
+                <td class="value">
+                    <select name="website" id="website" class="select" style="width:170px">
+                        <?php foreach ($websiteOptions as $value => $label): ?>
+                            <option value="<?php echo $this->escapeHtml($value) ?>"<?php if ((string) $value === (string) $f['website']): ?> selected="selected"<?php endif; ?>><?php echo $this->escapeHtml($label) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </td>
+                <td colspan="4" class="ysd-muted"><?php echo $this->__('Amounts in %s. Websites with another base currency are never added in.', $this->escapeHtml($report->getCurrencyCode())) ?></td>
+            </tr>
+            <?php endif; ?>
+        </table>
+        <p style="margin:8px 0 0">
+            <button type="submit" class="scalable save"><span><span><?php echo $this->__('Show') ?></span></span></button>
+            <span class="ysd-muted" style="margin-left:10px"><?php echo $this->__('Dates are store time (%s).', $this->escapeHtml($this->getTimezoneName())) ?></span>
+        </p>
+    </div>
+</div>
+</form>
+
+<?php $netSales = $sales['order_total'] - $refunds['total']; ?>
+<div class="ysd-kpis">
+    <div class="ysd-kpi"><div class="l"><?php echo $this->__('Orders') ?></div><div class="v"><?php echo number_format($sales['orders']) ?></div><div class="s"><?php echo $this->__('%s items', number_format($sales['qty_ordered'])) ?></div></div>
+    <div class="ysd-kpi"><div class="l"><?php echo $this->__('Sales (order totals)') ?></div><div class="v"><?php echo $m($sales['order_total']) ?></div><div class="s"><?php echo $this->__('incl. shipping & tax') ?></div></div>
+    <div class="ysd-kpi"><div class="l"><?php echo $this->__('Returns & credits') ?></div><div class="v ysd-neg"><?php echo $neg($refunds['total']) ?></div><div class="s"><?php echo $this->__('%s credit memos', $refunds['memos']) ?></div></div>
+    <div class="ysd-kpi"><div class="l"><?php echo $this->__('Net sales') ?></div><div class="v ysd-pos"><?php echo $m($netSales) ?></div><div class="s"><?php echo $this->__('sales minus returns & credits') ?></div></div>
+    <div class="ysd-kpi"><div class="l"><?php echo $this->__('Card net (gateway)') ?></div><div class="v"><?php echo $m($card['totals']['net']) ?></div><div class="s"><?php echo $this->__('captured minus refunded, all orders') ?></div></div>
+</div>
+
+<div class="ysd-grid">
+    <div class="entry-edit">
+        <div class="entry-edit-head"><h4 class="icon-head head-money"><?php echo $this->__('Sales') ?> <span class="ysd-muted">&middot; <?php echo $this->__('orders placed in the period') ?></span></h4></div>
+        <div class="fieldset">
+            <div class="grid"><table cellspacing="0" class="data ysd-table">
+                <tbody>
+                    <tr><td><?php echo $this->__('Gross sales (products, before discounts)') ?></td><td class="a-right"><?php echo $m($sales['gross']) ?></td></tr>
+                    <tr><td><?php echo $this->__('Discounts') ?></td><td class="a-right ysd-neg"><?php echo $neg($sales['discount']) ?></td></tr>
+                    <tr><td><?php echo $this->__('Shipping') ?></td><td class="a-right"><?php echo $m($sales['shipping']) ?></td></tr>
+                    <tr><td><?php echo $this->__('Tax') ?></td><td class="a-right"><?php echo $m($sales['tax']) ?></td></tr>
+                    <?php if (abs($sales['fees']) >= 0.005): ?>
+                    <tr><td><?php echo $this->__('Custom fees') ?></td><td class="a-right"><?php echo $m($sales['fees']) ?></td></tr>
+                    <?php endif; ?>
+                    <?php if (abs($sales['other']) >= 0.01): ?>
+                    <tr><td><?php echo $this->__('Other adjustments') ?> <span class="ysd-muted"><?php echo $this->__('(imported or edited totals)') ?></span></td><td class="a-right"><?php echo $m($sales['other']) ?></td></tr>
+                    <?php endif; ?>
+                    <tr class="ysd-total"><td><?php echo $this->__('Order totals') ?></td><td class="a-right"><?php echo $m($sales['order_total']) ?></td></tr>
+                    <tr class="ysd-sub"><td><?php echo $this->__('paid with internal credit (store credit)') ?></td><td class="a-right"><?php echo $m($sales['credit']) ?></td></tr>
+                    <tr class="ysd-sub"><td><?php echo $this->__('paid by payment method (card, cheque…)') ?></td><td class="a-right"><?php echo $m($sales['paid']) ?></td></tr>
+                    <tr class="ysd-sep"><td><?php echo $this->__('Items shipped') ?></td><td class="a-right"><?php echo number_format($sales['qty_shipped']) ?></td></tr>
+                </tbody>
+            </table></div>
+            <p class="ysd-note"><?php echo $this->__('Counts orders with status: %s.', $this->escapeHtml(implode(', ', $report->getStatuses()))) ?></p>
+        </div>
+    </div>
+
+    <div class="entry-edit">
+        <div class="entry-edit-head"><h4 class="icon-head head-money"><?php echo $this->__('Returns & Credits') ?> <span class="ysd-muted">&middot; <?php echo $this->__('credit memos created in the period') ?></span></h4></div>
+        <div class="fieldset">
+            <div class="grid"><table cellspacing="0" class="data ysd-table">
+                <tbody>
+                    <tr><td><?php echo $this->__('Products returned') ?></td><td class="a-right"><?php echo $m($refunds['items']) ?></td></tr>
+                    <?php if (abs($refunds['discount']) >= 0.005): ?>
+                    <tr><td><?php echo $this->__('Discounts on returned products') ?></td><td class="a-right ysd-neg"><?php echo $neg($refunds['discount']) ?></td></tr>
+                    <?php endif; ?>
+                    <tr><td><?php echo $this->__('Shipping refunded') ?></td><td class="a-right"><?php echo $m($refunds['shipping']) ?></td></tr>
+                    <tr><td><?php echo $this->__('Tax refunded') ?></td><td class="a-right"><?php echo $m($refunds['tax']) ?></td></tr>
+                    <?php if ($refunds['adj_refund'] >= 0.005): ?>
+                    <tr><td><?php echo $this->__('Adjustment refunds') ?></td><td class="a-right"><?php echo $m($refunds['adj_refund']) ?></td></tr>
+                    <?php endif; ?>
+                    <tr><td><?php echo $this->__('Return shipping fees kept') ?></td><td class="a-right ysd-neg"><?php echo $neg($refunds['return_fee']) ?></td></tr>
+                    <tr><td><?php echo $this->__('Restocking fees kept') ?></td><td class="a-right ysd-neg"><?php echo $neg($refunds['restocking_fee']) ?></td></tr>
+                    <?php if ($refunds['adj_fee'] >= 0.005): ?>
+                    <tr><td><?php echo $this->__('Adjustment fees kept') ?></td><td class="a-right ysd-neg"><?php echo $neg($refunds['adj_fee']) ?></td></tr>
+                    <?php endif; ?>
+                    <tr class="ysd-total"><td><?php echo $this->__('Total returns & credits') ?></td><td class="a-right ysd-neg"><?php echo $neg($refunds['total']) ?></td></tr>
+                    <tr class="ysd-sub"><td><?php echo $this->__('refunded to payment method') ?></td><td class="a-right"><?php echo $m($refunds['to_payment']) ?></td></tr>
+                    <tr class="ysd-sub"><td><?php echo $this->__('given as internal credit (store credit)') ?></td><td class="a-right"><?php echo $m($refunds['to_credit']) ?></td></tr>
+                </tbody>
+            </table></div>
+            <p class="ysd-note"><?php echo $this->__('Includes credit memos on orders of any date, for the website, customer type and channel selected.') ?></p>
+        </div>
+    </div>
+</div>
+
+<div class="ysd-grid">
+    <div class="entry-edit">
+        <div class="entry-edit-head"><h4 class="icon-head head-money"><?php echo $this->__('By Channel and Customer Type') ?></h4></div>
+        <div class="fieldset">
+            <div class="grid"><table cellspacing="0" class="data ysd-table">
+                <thead><tr class="headings"><th><?php echo $this->__('Channel') ?></th><th class="a-right"><?php echo $this->__('Orders') ?></th><th class="a-right"><?php echo $this->__('Order totals') ?></th></tr></thead>
+                <tbody>
+                    <?php foreach ($splits['channels'] as $code => $row): ?>
+                    <tr<?php if ($f['channel'] === $code): ?> class="ysd-active"<?php endif; ?>><td><?php echo $this->escapeHtml($this->getChannelLabel($code)) ?></td><td class="a-right"><?php echo number_format($row['orders']) ?></td><td class="a-right"><?php echo $m($row['total']) ?></td></tr>
+                    <?php endforeach; ?>
+                </tbody>
+                <thead><tr class="headings"><th><?php echo $this->__('Customer group') ?></th><th class="a-right"><?php echo $this->__('Orders') ?></th><th class="a-right"><?php echo $this->__('Order totals') ?></th></tr></thead>
+                <tbody>
+                    <?php foreach ($splits['groups'] as $row): ?>
+                    <tr<?php if ((string) $f['group'] === (string) $row['id'] || ($f['group'] === 'wholesale' && $row['wholesale']) || ($f['group'] === 'retail' && !$row['wholesale'])): ?> class="ysd-active"<?php endif; ?>>
+                        <td><?php echo $this->escapeHtml($row['name']) ?><?php if ($row['wholesale']): ?> <span class="ysd-muted">(<?php echo $this->__('wholesale') ?>)</span><?php endif; ?></td>
+                        <td class="a-right"><?php echo number_format($row['orders']) ?></td><td class="a-right"><?php echo $m($row['total']) ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                    <?php if (!$splits['groups']): ?><tr><td colspan="3" class="a-center"><?php echo $this->__('No orders in this period.') ?></td></tr><?php endif; ?>
+                </tbody>
+            </table></div>
+            <p class="ysd-note"><?php echo $this->__('Each list ignores its own filter, so the whole split stays visible; the selected one is highlighted.') ?></p>
+        </div>
+    </div>
+
+    <div class="entry-edit">
+        <div class="entry-edit-head"><h4 class="icon-head head-money"><?php echo $this->__('By Payment Method') ?></h4></div>
+        <div class="fieldset">
+            <div class="grid"><table cellspacing="0" class="data ysd-table">
+                <thead><tr class="headings"><th><?php echo $this->__('Method') ?></th><th class="a-right"><?php echo $this->__('Orders') ?></th><th class="a-right"><?php echo $this->__('Paid by method') ?></th><th class="a-right"><?php echo $this->__('Internal credit') ?></th></tr></thead>
+                <tbody>
+                    <?php foreach ($methods as $row): ?>
+                    <tr><td><?php echo $this->escapeHtml($row['title']) ?></td><td class="a-right"><?php echo number_format($row['orders']) ?></td><td class="a-right"><?php echo $m($row['paid']) ?></td><td class="a-right"><?php echo $m($row['credit']) ?></td></tr>
+                    <?php endforeach; ?>
+                    <?php if (!$methods): ?><tr><td colspan="4" class="a-center"><?php echo $this->__('No orders in this period.') ?></td></tr><?php endif; ?>
+                </tbody>
+            </table></div>
+        </div>
+        <div class="entry-edit-head" style="margin-top:12px"><h4 class="icon-head head-money"><?php echo $this->__('Tax by Rate') ?></h4></div>
+        <div class="fieldset">
+            <div class="grid"><table cellspacing="0" class="data ysd-table">
+                <tbody>
+                    <?php $taxTotal = 0; foreach ($taxes as $code => $amount): $taxTotal += $amount; ?>
+                    <tr><td><?php echo $this->escapeHtml($code) ?></td><td class="a-right"><?php echo $m($amount) ?></td></tr>
+                    <?php endforeach; ?>
+                    <?php if ($taxes): ?>
+                    <tr class="ysd-total"><td><?php echo $this->__('Total tax') ?></td><td class="a-right"><?php echo $m($taxTotal) ?></td></tr>
                     <?php else: ?>
-                        <tr>
-                            <td colspan="3" class="a-center"><?php echo $this->__('No product data available for this period.') ?></td>
-                        </tr>
+                    <tr><td colspan="2" class="a-center"><?php echo $this->__('No tax in this period.') ?></td></tr>
                     <?php endif; ?>
                 </tbody>
-            </table>
+            </table></div>
         </div>
+    </div>
+</div>
+
+<?php if ($grouping): ?>
+<div class="entry-edit">
+    <div class="entry-edit-head"><h4 class="icon-head head-money"><?php echo $this->__('Products Sold by %s', $this->escapeHtml(ucfirst(str_replace('_', ' ', $grouping)))) ?></h4></div>
+    <div class="fieldset">
+        <div class="grid"><table cellspacing="0" class="data ysd-table">
+            <thead><tr class="headings"><th><?php echo $this->escapeHtml(ucfirst(str_replace('_', ' ', $grouping))) ?></th><th class="a-right"><?php echo $this->__('Quantity') ?></th><th class="a-right"><?php echo $this->__('Amount (after discounts)') ?></th></tr></thead>
+            <tbody>
+                <?php foreach ($products as $label => $row): ?>
+                <tr><td><?php echo $this->escapeHtml($label) ?></td><td class="a-right"><?php echo number_format($row['qty']) ?></td><td class="a-right"><?php echo $m($row['amount']) ?></td></tr>
+                <?php endforeach; ?>
+                <?php if (!$products): ?><tr><td colspan="3" class="a-center"><?php echo $this->__('No products sold in this period.') ?></td></tr><?php endif; ?>
+            </tbody>
+        </table></div>
     </div>
 </div>
 <?php endif; ?>
 
+<div class="entry-edit" id="card-reconciliation">
+    <div class="entry-edit-head">
+        <h4 class="icon-head head-money"><?php echo $this->__('Card Reconciliation') ?> <span class="ysd-muted">&middot; <?php echo $this->__('what went through the card gateway, %s to %s', $this->day($f['from']), $this->day($f['to'])) ?></span></h4>
+    </div>
+    <div class="fieldset">
+        <p class="ysd-note">
+            <?php echo $this->__('Every card capture and refund sent through the gateway, for all customers and channels on the website selected (the other filters do not apply), by store date. Card methods: %s.', $this->escapeHtml(implode(', ', array_map(array($report, 'methodTitle'), $card['methods'])))) ?>
+            <?php echo $this->__('Deposits arrive after the gateway settles each day\'s batch and may be net of processing fees.') ?>
+            <button type="button" class="scalable" style="margin-left:8px" onclick="setLocation('<?php echo $this->getExportUrl() ?>')"><span><span><?php echo $this->__('Export CSV') ?></span></span></button>
+        </p>
+        <div class="grid"><table cellspacing="0" class="data ysd-table">
+            <thead><tr class="headings">
+                <th><?php echo $this->__('Date') ?></th>
+                <th class="a-right"><?php echo $this->__('Captured') ?></th>
+                <th class="a-right"><?php echo $this->__('Refunded') ?></th>
+                <th class="a-right"><?php echo $this->__('Net') ?></th>
+                <th class="a-right"><?php echo $this->__('Refunded offline') ?></th>
+                <th class="a-right"><?php echo $this->__('Invoiced without capture') ?></th>
+            </tr></thead>
+            <tbody>
+                <?php foreach ($card['days'] as $day => $d): ?>
+                <tr>
+                    <td><?php echo $this->escapeHtml($this->day($day)) ?></td>
+                    <td class="a-right"><?php echo $m($d['captured']) ?> <span class="ysd-muted">(<?php echo (int) $d['captures'] ?>)</span></td>
+                    <td class="a-right ysd-neg"><?php echo $neg($d['refunded']) ?><?php if ($d['refunds']): ?> <span class="ysd-muted">(<?php echo (int) $d['refunds'] ?>)</span><?php endif; ?></td>
+                    <td class="a-right"><strong><?php echo $m($d['net']) ?></strong></td>
+                    <td class="a-right ysd-muted"><?php echo $d['refunded_offline'] ? $m($d['refunded_offline']) : '' ?></td>
+                    <td class="a-right ysd-muted"><?php echo $d['invoiced_offline'] ? $m($d['invoiced_offline']) : '' ?></td>
+                </tr>
+                <?php endforeach; ?>
+                <?php if (!$card['days']): ?><tr><td colspan="6" class="a-center"><?php echo $this->__('No card transactions in this period.') ?></td></tr><?php endif; ?>
+                <?php $t = $card['totals']; ?>
+                <tr class="ysd-total">
+                    <td><?php echo $this->__('Total') ?></td>
+                    <td class="a-right"><?php echo $m($t['captured']) ?> <span class="ysd-muted">(<?php echo (int) $t['captures'] ?>)</span></td>
+                    <td class="a-right ysd-neg"><?php echo $neg($t['refunded']) ?> <span class="ysd-muted">(<?php echo (int) $t['refunds'] ?>)</span></td>
+                    <td class="a-right"><?php echo $m($t['net']) ?></td>
+                    <td class="a-right"><?php echo $m($t['refunded_offline']) ?></td>
+                    <td class="a-right"><?php echo $m($t['invoiced_offline']) ?></td>
+                </tr>
+            </tbody>
+        </table></div>
+        <p class="ysd-note">
+            <strong><?php echo $this->__('Net') ?></strong> = <?php echo $this->__('captured minus refunded through the gateway; this is what should match the gateway deposits.') ?>
+            <strong><?php echo $this->__('Refunded offline') ?></strong>: <?php echo $this->__('credit memos on card orders made with "Refund Offline"; they only reach the card if someone refunded them in the gateway portal.') ?>
+            <strong><?php echo $this->__('Invoiced without capture') ?></strong>: <?php echo $this->__('invoices on card orders that did not charge the card through Magento.') ?>
+            <?php if ($t['canceled'] > 0): ?><span class="ysd-neg"><?php echo $this->__('Canceled invoices on card orders: %s (not in the totals; check them in the gateway).', $m($t['canceled'])) ?></span><?php endif; ?>
+        </p>
+
+        <?php if ($card['rows']): ?>
+        <details class="ysd-details">
+            <summary><?php echo $this->__('Show all %s transactions', count($card['rows'])) ?></summary>
+            <div class="grid"><table cellspacing="0" class="data ysd-table">
+                <thead><tr class="headings">
+                    <th><?php echo $this->__('Date') ?></th><th><?php echo $this->__('Time') ?></th><th><?php echo $this->__('Type') ?></th>
+                    <th><?php echo $this->__('Order') ?></th><th><?php echo $this->__('Invoice / Credit memo') ?></th><th><?php echo $this->__('Gateway transaction') ?></th>
+                    <th class="a-right"><?php echo $this->__('Amount') ?></th>
+                </tr></thead>
+                <tbody>
+                    <?php foreach ($card['rows'] as $r): $isRefund = in_array($r['kind'], array('refund', 'refund_offline'), true); ?>
+                    <tr>
+                        <td><?php echo $this->escapeHtml($r['date']) ?></td>
+                        <td><?php echo $this->escapeHtml($r['time']) ?></td>
+                        <td<?php if (!in_array($r['kind'], array('capture', 'refund'), true)): ?> class="ysd-muted"<?php endif; ?>><?php echo $this->escapeHtml($labels[$r['kind']]) ?></td>
+                        <td><a href="<?php echo $this->getOrderUrl($r['order_id']) ?>"><?php echo $this->escapeHtml($r['order_no']) ?></a></td>
+                        <td><a href="<?php echo $this->getDocUrl($r) ?>"><?php echo $this->escapeHtml($r['doc']) ?></a></td>
+                        <td><?php echo $this->escapeHtml($r['txn']) ?></td>
+                        <td class="a-right<?php if ($isRefund): ?> ysd-neg<?php endif; ?>"><?php echo $isRefund ? $neg($r['amount']) : $m($r['amount']) ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table></div>
+        </details>
+        <?php endif; ?>
+    </div>
+</div>
+
 <script type="text/javascript">
 //<![CDATA[
-    // Initialize date pickers with calendar icons
-    Calendar.setup({
-        inputField: 'date_from',
-        ifFormat: '%Y-%m-%d',
-        button: 'date_from_trig',
-        align: 'Bl',
-        singleClick: true
-    });
-    
-    Calendar.setup({
-        inputField: 'date_to',
-        ifFormat: '%Y-%m-%d',
-        button: 'date_to_trig',
-        align: 'Bl',
-        singleClick: true
-    });
-    
-    // Apply pre-selected period
-    function applyPeriod() {
-        var period = $('period_select').value;
-        if (!period) return;
-        
-        var today = new Date();
-        var fromDate, toDate;
-        
-        switch(period) {
-            case 'current_month':
-                fromDate = new Date(today.getFullYear(), today.getMonth(), 1);
-                toDate = today;
-                break;
-                
-            case 'last_month':
-                fromDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-                toDate = new Date(today.getFullYear(), today.getMonth(), 0);
-                break;
-                
-            case 'current_year':
-                fromDate = new Date(today.getFullYear(), 0, 1);
-                toDate = today;
-                break;
-                
-            case 'last_year':
-                fromDate = new Date(today.getFullYear() - 1, 0, 1);
-                toDate = new Date(today.getFullYear() - 1, 11, 31);
-                break;
-                
-            case 'two_years':
-                fromDate = new Date(today.getFullYear() - 2, today.getMonth(), today.getDate());
-                toDate = today;
-                break;
-                
-            case 'three_years':
-                fromDate = new Date(today.getFullYear() - 3, today.getMonth(), today.getDate());
-                toDate = today;
-                break;
-        }
-        
-        if (fromDate && toDate) {
-            $('date_from').value = formatDate(fromDate);
-            $('date_to').value = formatDate(toDate);
-            refreshDashboard();
-        }
+    Calendar.setup({ inputField: 'date_from', ifFormat: '%Y-%m-%d', button: 'date_from_trig', align: 'Bl', singleClick: true });
+    Calendar.setup({ inputField: 'date_to', ifFormat: '%Y-%m-%d', button: 'date_to_trig', align: 'Bl', singleClick: true });
+    function ysdFmt(d) {
+        return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
     }
-    
-    // Format date as YYYY-MM-DD
-    function formatDate(date) {
-        var year = date.getFullYear();
-        var month = String(date.getMonth() + 1).padStart(2, '0');
-        var day = String(date.getDate()).padStart(2, '0');
-        return year + '-' + month + '-' + day;
-    }
-    
-    // Polyfill for padStart if not available
-    if (!String.prototype.padStart) {
-        String.prototype.padStart = function(targetLength, padString) {
-            targetLength = targetLength >> 0;
-            padString = String(typeof padString !== 'undefined' ? padString : ' ');
-            if (this.length >= targetLength) {
-                return String(this);
-            } else {
-                targetLength = targetLength - this.length;
-                if (targetLength > padString.length) {
-                    padString += padString.repeat(targetLength / padString.length);
-                }
-                return padString.slice(0, targetLength) + String(this);
-            }
-        };
-    }
-    
-    // Refresh dashboard data via AJAX
-    function refreshDashboard() {
-        var fromDate = $('date_from').value;
-        var toDate = $('date_to').value;
-        var groupingAttribute = $('grouping_attribute_select').value;
-        
-        if (!fromDate || !toDate) {
-            alert('<?php echo $this->__('Please select both From and To dates.') ?>');
-            return;
+    function ysdApplyPeriod() {
+        var p = $('period_select').value, t = new Date(), from, to;
+        if (!p) { return; }
+        switch (p) {
+            case 'today': from = to = t; break;
+            case 'yesterday': from = to = new Date(t.getFullYear(), t.getMonth(), t.getDate() - 1); break;
+            case 'current_month': from = new Date(t.getFullYear(), t.getMonth(), 1); to = t; break;
+            case 'last_month': from = new Date(t.getFullYear(), t.getMonth() - 1, 1); to = new Date(t.getFullYear(), t.getMonth(), 0); break;
+            case 'current_year': from = new Date(t.getFullYear(), 0, 1); to = t; break;
+            case 'last_year': from = new Date(t.getFullYear() - 1, 0, 1); to = new Date(t.getFullYear() - 1, 11, 31); break;
         }
-        
-        new Ajax.Request('<?php echo $this->getRefreshUrl() ?>', {
-            method: 'post',
-            parameters: {
-                from: fromDate,
-                to: toDate,
-                grouping_attribute: groupingAttribute,
-                form_key: FORM_KEY
-            },
-            onSuccess: function(transport) {
-                if (transport.responseText.isJSON()) {
-                    var response = transport.responseText.evalJSON();
-                    
-                    // Update the sales totals display
-                    if ($('order-count')) {
-                        $('order-count').update(response.order_count);
-                    }
-                    if ($('total-items-shipped')) {
-                        $('total-items-shipped').update(response.total_items_shipped);
-                    }
-                    if ($('total-sales-without-shipping')) {
-                        $('total-sales-without-shipping').update(response.total_sales_without_shipping);
-                    }
-                    if ($('total-shipping')) {
-                        $('total-shipping').update(response.total_shipping);
-                    }
-                    if ($('total-tax-line')) {
-                        $('total-tax-line').update(response.total_tax_display);
-                    }
-                    if ($('total-sales-with-shipping')) {
-                        $('total-sales-with-shipping').update('<strong style="font-size: 1.2em; color: #006400;">' + response.total_sales_with_shipping + '</strong>');
-                    }
-                    if ($('total-refunded')) {
-                        $('total-refunded').update('<strong style="color: #cc0000;">-' + response.total_refunded + '</strong>');
-                    }
-                    
-                    // Update tax breakdown
-                    if ($('tax-breakdown-body')) {
-                        var taxBreakdownHtml = '';
-                        if (response.taxes_by_zone && response.taxes_by_zone.length > 0) {
-                            response.taxes_by_zone.each(function(tax) {
-                                taxBreakdownHtml += '<tr><td>' + tax.identifier.escapeHTML() + '</td><td class="a-right">' + tax.amount + '</td></tr>';
-                            });
-                            if (response.federal_tax_raw && response.federal_tax_raw > 0) {
-                                taxBreakdownHtml += '<tr style="border-top: 1px solid #ccc;"><td><strong><?php echo $this->__('Federal Tax Subtotal') ?></strong></td><td class="a-right" id="federal-tax"><strong>' + response.federal_tax + '</strong></td></tr>';
-                            }
-                            taxBreakdownHtml += '<tr style="border-top: 2px solid #ccc;"><td><strong><?php echo $this->__('Total Tax') ?></strong></td><td class="a-right" id="total-tax"><strong style="font-size: 1.1em;">' + response.total_tax + '</strong></td></tr>';
-                        } else {
-                            taxBreakdownHtml = '<tr><td colspan="2" class="a-center"><?php echo $this->__('No tax data available for this period.') ?></td></tr>';
-                        }
-                        $('tax-breakdown-body').update(taxBreakdownHtml);
-                    }
-                    
-                    // Update products by attribute
-                    if ($('products-by-attribute-body')) {
-                        var productsHtml = '';
-                        if (response.products_by_attribute && response.products_by_attribute.length > 0) {
-                            response.products_by_attribute.each(function(product) {
-                                productsHtml += '<tr><td>' + product.attribute.escapeHTML() + '</td><td class="a-right">' + product.qty + '</td><td class="a-right">' + product.amount + '</td></tr>';
-                            });
-                        } else {
-                            productsHtml = '<tr><td colspan="3" class="a-center"><?php echo $this->__('No product data available for this period.') ?></td></tr>';
-                        }
-                        $('products-by-attribute-body').update(productsHtml);
-                    }
-                } else {
-                    alert('<?php echo $this->__('Error loading data. Please try again.') ?>');
-                }
-            },
-            onFailure: function() {
-                alert('<?php echo $this->__('Error loading data. Please try again.') ?>');
-            }
-        });
+        $('date_from').value = ysdFmt(from);
+        $('date_to').value = ysdFmt(to);
+        $('ysd-filters').submit();
     }
 //]]>
 </script>
-
-<style type="text/css">
-    .entry-edit {
-        margin-bottom: 20px;
-    }
-    
-    .data tbody tr:hover {
-        background-color: #f9f9f9;
-    }
-    
-    .data td {
-        padding: 10px;
-    }
-</style>

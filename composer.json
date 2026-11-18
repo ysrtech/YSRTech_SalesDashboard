@@ -1,0 +1,14 @@
+{
+    "name": "ysrtech/sales-dashboard",
+    "description": "OpenMage: one-page sales dashboard (sales, returns and credits, channels, customer types, payment methods, taxes, products by attribute) and card gateway reconciliation.",
+    "type": "magento-module",
+    "license": "MIT",
+    "require": {
+        "magento-hackathon/magento-composer-installer": "*"
+    },
+    "extra": {
+        "map": [
+            ["app", "app"]
+        ]
+    }
+}

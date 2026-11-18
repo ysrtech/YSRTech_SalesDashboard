@@ -2,7 +2,7 @@
 <config>
     <modules>
         <YSRTech_SalesDashboard>
-            <version>1.0.0</version>
+            <version>1.2.0</version>
         </YSRTech_SalesDashboard>
     </modules>
     
@@ -93,7 +93,13 @@
             <general>
                 <order_statuses>complete</order_statuses>
                 <product_grouping_attribute>category</product_grouping_attribute>
+                <wholesale_groups>2</wholesale_groups>
+                <retail_groups></retail_groups>
+                <marketplace_label>Marketplace import</marketplace_label>
             </general>
+            <reconciliation>
+                <card_methods>authorizenet,solapayments</card_methods>
+            </reconciliation>
         </ysrtech_salesdashboard>
     </default>
 </config>
