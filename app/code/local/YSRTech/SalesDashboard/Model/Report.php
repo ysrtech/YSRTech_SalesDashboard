@@ -375,7 +375,8 @@ class YSRTech_SalesDashboard_Model_Report
     public function getSalesSummary()
     {
         $credit = $this->_col('sales/order', 'o', 'base_customer_credit_amount');
-        $fee    = $this->_col('sales/order', 'o', 'iwd_om_fee_base_amount');
+        // order fees of other extensions (IWD order manager fee, Capital_Fees delivery fees)
+        $fee    = $this->_col('sales/order', 'o', 'iwd_om_fee_base_amount') . ' + ' . $this->_col('sales/order', 'o', 'base_capital_fee_amount');
         $select = $this->_salesOrders()->columns(array(
             'orders'      => 'COUNT(*)',
             'qty_ordered' => 'SUM(IFNULL(o.total_qty_ordered, 0))',
